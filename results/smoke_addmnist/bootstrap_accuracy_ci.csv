@@ -1,0 +1,5 @@
+method,budget,split,accuracy,ci95_low,ci95_high,n_predictions
+anchor_posterior,64,iid_restricted,0.09375,0.03125,0.171875,64
+anchor_posterior,64,ood_high_high,0.0,0.0,0.0,64
+direct_sum,64,iid_restricted,0.203125,0.109375,0.3125,64
+direct_sum,64,ood_high_high,0.015625,0.0,0.046875,64

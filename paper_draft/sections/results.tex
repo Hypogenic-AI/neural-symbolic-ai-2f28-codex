@@ -1,0 +1,53 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Main Accuracy Results}
+
+\input{tables/main_results}
+
+\Figref{fig:accuracy_budget} and \tabref{tab:main_results} show the main result. At 1,000 pair labels, none of the symbolic models learns a reliable enough digit grounding to solve the high-plus-high split. \directsum obtains 1.4\% OOD accuracy, while all symbolic variants obtain 0.0\%. This low-budget result is important: symbolic structure does not remove the need to learn usable predicates.
+
+At 5,000 pair labels, the behavior changes sharply. \symbolicsum reaches 90.0\% IID accuracy and 82.5\% OOD high-plus-high accuracy. \directsum improves to 31.8\% IID accuracy but remains at 0.3\% OOD accuracy. The absolute OOD gap between \symbolicsum and \directsum is 82.2 percentage points. The anchor variants also strongly beat the direct baseline, reaching 73.2\% and 74.1\% OOD accuracy, but they do not exceed the plain symbolic likelihood.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/accuracy_by_method_budget.png}
+    \caption{Accuracy by method and pair-label budget. The 5,000-label setting separates the direct classifier from the neural-symbolic models: exact symbolic marginalization enables high OOD accuracy once digit predicates are grounded.}
+    \label{fig:accuracy_budget}
+\end{figure}
+
+\subsection{Extrapolation to Unseen Sum Labels}
+
+\input{tables/ood_regions}
+
+The main OOD split contains both seen and unseen sum labels. Sums 10--13 can occur during restricted training through low-plus-high pairs, while sums 14--18 cannot occur because both digits must be high. \Tabref{tab:ood_regions} separates these regions for the 5,000-label budget. \symbolicsum reaches 85.7\% accuracy on seen OOD sums and 80.6\% accuracy on unseen sums 14--18. \directsum reaches 0.9\% on seen OOD sums and 0.0\% on unseen sums. The direct model has output logits for the unseen labels, but the training objective never rewards those labels, so it has no effective route to the held-out sums.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/ood_accuracy_by_sum.png}
+    \caption{OOD accuracy by true sum. The symbolic models recover high-plus-high sums across the OOD range at the 5,000-label budget, including sums 14--18 that never appear as training labels.}
+    \label{fig:ood_by_sum}
+\end{figure}
+
+\subsection{Digit Grounding}
+
+\input{tables/digit_grounding}
+
+The OOD gains coincide with strong digit grounding. At 1,000 pair labels, symbolic models reach only 29.4--34.1\% digit accuracy, and OOD accuracy remains at zero. At 5,000 pair labels, digit accuracy rises above 91\% for all symbolic variants. The strongest OOD model, \symbolicsum, also has the strongest digit grounding at 93.8\% mean digit accuracy. This supports the intended interpretation: the model is not merely fitting aggregate sum labels; it learns reusable digit predicates that the addition table can compose.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.78\linewidth]{figures/digit_grounding.png}
+    \caption{Digit grounding accuracy for symbolic models. OOD sum generalization appears only when the learned digit predicates become accurate enough to support symbolic composition.}
+    \label{fig:digit_grounding}
+\end{figure}
+
+\subsection{Statistical Comparisons}
+
+\input{tables/statistical_tests}
+
+\Tabref{tab:stats} reports paired seed-level tests for the 5,000-label OOD setting. The symbolic likelihood model improves over \directsum by 82.2 percentage points, with Cohen's $d_z=20.75$ and $p=0.0008$ across three matched seeds. The anchor variants also show large gains over \directsum. Because there are only three seeds, we treat the $p$-values as descriptive rather than definitive. The bootstrap intervals over per-example predictions tell the same story: \symbolicsum has an OOD interval of [81.8, 83.2]\%, while \directsum has [0.2, 0.4]\%.
+
+\subsection{Ablation Summary}
+
+The planned anchor-posterior modification is useful as an ablation but not as the best-performing method. At 5,000 labels, \anchorposterior reaches 74.1\% OOD accuracy, slightly above \anchorsymbolic at 73.2\%, but both trail \symbolicsum at 82.5\%. The anchor and entropy terms may over-weight early latent assignments or interfere with the weak pair-label signal. The result is a negative finding for the proposed modification and a positive finding for the simpler symbolic likelihood.

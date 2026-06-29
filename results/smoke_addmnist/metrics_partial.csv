@@ -1,0 +1,6 @@
+method,budget,seed,epochs,batch_size,lr,anchor_per_class,anchor_weight,entropy_weight,eval_pairs,device,use_amp,run_id,train_seconds,split,accuracy,macro_f1,nll,mean_confidence,n_examples,digit_accuracy,digit_macro_f1,digit_mean_confidence,digit_examples
+direct_sum,64,1,1,32,0.001,10,0.5,0.03,64,cuda:0,True,direct_sum_b64_s1,2.554969225078821,iid_restricted,0.203125,0.0177717019822283,2.9083242416381836,0.06076771765947342,64,,,,
+direct_sum,64,1,1,32,0.001,10,0.5,0.03,64,cuda:0,True,direct_sum_b64_s1,2.554969225078821,ood_high_high,0.015625,0.001619433198380567,2.9476356506347656,0.060717448592185974,64,,,,
+anchor_posterior,64,1,1,32,0.001,10,0.5,0.03,64,cuda:0,True,anchor_posterior_b64_s1,0.5958438385277987,iid_restricted,0.09375,0.009022556390977444,2.6912624835968018,0.09940776228904724,64,,,,
+anchor_posterior,64,1,1,32,0.001,10,0.5,0.03,64,cuda:0,True,anchor_posterior_b64_s1,0.5958438385277987,ood_high_high,0.0,0.0,3.2610132694244385,0.09940401464700699,64,,,,
+anchor_posterior,64,1,1,32,0.001,10,0.5,0.03,64,cuda:0,True,anchor_posterior_b64_s1,0.5958438385277987,digit_test,0.157,0.05385499387460326,,0.11727434396743774,10000,0.157,0.05385499387460326,0.11727434396743774,10000.0

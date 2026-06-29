@@ -1,0 +1,4 @@
+method,budget,seed,epochs,batch_size,lr,anchor_per_class,anchor_weight,entropy_weight,eval_pairs,device,use_amp,run_id,train_seconds,split,accuracy,macro_f1,nll,mean_confidence,n_examples,digit_accuracy,digit_macro_f1,digit_mean_confidence,digit_examples
+symbolic_sum,128,123,2,64,0.001,10,0.5,0.03,128,cuda:0,True,symbolic_sum_b128_s123,2.646234459243715,iid_restricted,0.1015625,0.009705113848450913,2.6207594871520996,0.09961874783039093,128,,,,
+symbolic_sum,128,123,2,64,0.001,10,0.5,0.03,128,cuda:0,True,symbolic_sum_b128_s123,2.646234459243715,ood_high_high,0.0,0.0,3.2828431129455566,0.09961381554603577,128,,,,
+symbolic_sum,128,123,2,64,0.001,10,0.5,0.03,128,cuda:0,True,symbolic_sum_b128_s123,2.646234459243715,digit_test,0.0982,0.01864488767394508,,0.12648798525333405,10000,0.0982,0.01864488767394508,0.12648798525333405,10000.0

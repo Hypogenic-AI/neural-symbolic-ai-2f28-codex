@@ -1,0 +1,9 @@
+PDF: papers/stammer_2021_right_for_the_right_concept_nesy_xil.pdf
+Total pages: 11
+Pages per chunk: 3
+
+Chunks:
+  stammer_2021_right_for_the_right_concept_nesy_xil_chunk_001.pdf: pages 1-3
+  stammer_2021_right_for_the_right_concept_nesy_xil_chunk_002.pdf: pages 4-6
+  stammer_2021_right_for_the_right_concept_nesy_xil_chunk_003.pdf: pages 7-9
+  stammer_2021_right_for_the_right_concept_nesy_xil_chunk_004.pdf: pages 10-11

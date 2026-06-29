@@ -1,0 +1,48 @@
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Task Formulation}
+
+Each example contains two \mnist images $(x_1,x_2)$ with latent digits $(d_1,d_2)\in\{0,\ldots,9\}^2$ and target sum $y=d_1+d_2\in\{0,\ldots,18\}$. The training set contains weak pair labels $y$ but, except for the anchor variants, does not reveal $d_1$ or $d_2$. The central design choice is the train/test split. Training pairs exclude the high-plus-high region,
+\begin{equation}
+    \{(d_1,d_2): d_1 \geq 5 \text{ and } d_2 \geq 5\},
+\end{equation}
+while the OOD split contains only that region. As a consequence, sums 14--18 never appear as supervised training labels, although they are valid outputs of the addition rule.
+
+\subsection{Data and Splits}
+
+We use the local \mnist dataset, with 60,000 training images and 10,000 test images \cite{lecun1998gradient}. Images are normalized with the standard \mnist mean and standard deviation. For each seed, we sample restricted training pairs for budgets of 1,000 and 5,000 pair labels. We evaluate on 4,000 IID restricted pairs and 4,000 OOD high-plus-high pairs per run. Across three seeds and four methods, the saved predictions contain 192,000 per-example pair predictions.
+
+\subsection{Models}
+
+\para{\directsum.} The direct baseline is a CNN that concatenates the two digit images as two input channels and predicts one of 19 sum labels with cross-entropy. The classifier has output logits for every sum, including 14--18, but labels 14--18 are absent from the restricted training set.
+
+\para{\symbolicsum.} The symbolic likelihood model uses a shared digit CNN $f_\theta$ to produce digit distributions for each image. It then computes the probability of a sum by exact marginalization:
+\begin{equation}
+    p_\theta(y \mid x_1,x_2)
+    =
+    \sum_{a=0}^{9}\sum_{b=0}^{9}
+    \mathbf{1}[a+b=y]\,
+    p_\theta(a\mid x_1)\,
+    p_\theta(b\mid x_2).
+    \label{eq:symbolic_likelihood}
+\end{equation}
+The model is trained with negative log likelihood on the observed pair sum. This objective has no learned rule parameters; the only learned part is digit perception.
+
+\para{\anchorsymbolic.} The anchor variant adds a small balanced digit-supervision set with 10 labeled examples per digit class. The loss combines the pair-sum negative log likelihood with an anchor cross-entropy term weighted by $\lambda=0.5$.
+
+\para{\anchorposterior.} The posterior variant adds entropy regularization over the latent digit-pair posterior induced by the observed sum. For a pair and sum label $y$, the posterior is
+\begin{equation}
+    q_\theta(a,b\mid x_1,x_2,y)
+    =
+    \frac{\mathbf{1}[a+b=y]\,p_\theta(a\mid x_1)p_\theta(b\mid x_2)}
+    {p_\theta(y\mid x_1,x_2)}.
+    \label{eq:posterior}
+\end{equation}
+The training loss adds $\beta H(q_\theta)$ with $\beta=0.03$, so minimizing the loss encourages sharper latent assignments among digit pairs consistent with the observed sum. This model also uses the anchor loss.
+
+\subsection{Training and Evaluation}
+
+All models are trained for 15 epochs with batch size 512, AdamW, learning rate $10^{-3}$, and weight decay $10^{-4}$. We run seeds 11, 23, and 37. Experiments use PyTorch 2.12.1 on an NVIDIA RTX A6000 with mixed precision enabled.
+
+We report sum accuracy on the IID restricted split and on the OOD high-plus-high split. For symbolic models, we also report digit accuracy on the \mnist test split to check whether the learned predicates align with true digits. We compute macro-F1, negative log likelihood, mean confidence, and training time in the result files, and we emphasize accuracy because it directly measures the extrapolation claim. For the primary OOD metric, we use paired seed-level $t$-tests and Cohen's $d_z$ effect sizes, plus bootstrap 95\% confidence intervals over per-example predictions.

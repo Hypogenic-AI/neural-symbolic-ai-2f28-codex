@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "stages": {
+    "resource_finder": {
+      "success": true,
+      "completion_marker": "/workspaces/neural-symbolic-ai-2f28-codex/.resource_finder_complete",
+      "outputs": {
+        "literature_review": "/workspaces/neural-symbolic-ai-2f28-codex/literature_review.md",
+        "resources_catalog": "/workspaces/neural-symbolic-ai-2f28-codex/resources.md",
+        "papers_dir": "/workspaces/neural-symbolic-ai-2f28-codex/papers",
+        "datasets_dir": "/workspaces/neural-symbolic-ai-2f28-codex/datasets",
+        "code_dir": "/workspaces/neural-symbolic-ai-2f28-codex/code"
+      },
+      "log_file": "/workspaces/neural-symbolic-ai-2f28-codex/logs/resource_finder_codex.log",
+      "transcript_file": "/workspaces/neural-symbolic-ai-2f28-codex/logs/resource_finder_codex_transcript.jsonl",
+      "elapsed_time": 980.5826814174652
+    },
+    "experiment_runner": {
+      "success": true,
+      "return_code": 0,
+      "elapsed_time": 1311.5415391921997,
+      "log_file": "/workspaces/neural-symbolic-ai-2f28-codex/logs/execution_codex.log",
+      "transcript_file": "/workspaces/neural-symbolic-ai-2f28-codex/logs/execution_codex_transcript.jsonl"
+    }
+  },
+  "work_dir": "/workspaces/neural-symbolic-ai-2f28-codex"
+}

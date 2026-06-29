@@ -1,0 +1,22 @@
+\section{Introduction}
+\label{sec:introduction}
+
+\para{Can a model predict labels it never saw?} This question is central to neural-symbolic learning. If a system learns visual predicates such as digit identity and then composes them with an exact rule such as addition, it should be able to predict a new sum even when that sum was absent from the supervised labels. A direct neural classifier, by contrast, can learn strong correlations in the observed label space but has no structural reason to assign probability to labels that never appear during training.
+
+Neural-symbolic methods promise this kind of systematic generalization by separating perception from reasoning. Prior systems connect neural predicates with probabilistic logic, differentiable logic, or declarative symbolic programs \cite{manhaeve2018deepproblog,vankrieken2022anesi,li2023scallop,badreddine2022logic}. Yet it is still useful to isolate a small, reproducible stress test where the output label gap is explicit. We focus on \addmnist because it exposes the exact tension: the input is perceptual, the rule is known, and the training distribution can be edited so that some valid sums never occur as labels.
+
+\input{figures/method_overview}
+
+\para{Our main question is simple.} Can a compact neural-symbolic \addmnist learner generalize to high-plus-high digit pairs when all such pairs are removed from training? We train on pairs where at least one digit is below 5, and we evaluate out of distribution on pairs where both digits are in $\{5,\ldots,9\}$. This makes sums 14--18 absent from training while keeping them common at test time. \Figref{fig:method} shows the comparison: the direct baseline predicts a sum from two images, while the symbolic models predict digit distributions and marginalize over digit pairs that satisfy the addition table.
+
+We evaluate four models: a direct pair CNN (\directsum), a weakly supervised symbolic likelihood model (\symbolicsum), a symbolic model with 10 labeled digit anchors per class (\anchorsymbolic), and an anchor-posterior variant that adds entropy regularization over the latent digit-pair posterior (\anchorposterior). The result is clear at the larger pair-label budget. With 5,000 pair labels, \symbolicsum reaches 82.5\% OOD high-plus-high accuracy, compared with 0.3\% for \directsum. On sums 14--18, which never appear as supervised labels, \symbolicsum reaches 80.6\%, while \directsum reaches 0.0\%.
+
+Our contributions are:
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item We define a controlled \addmnist extrapolation protocol that removes all high-plus-high training pairs and therefore removes sums 14--18 from the supervised labels.
+    \item We implement exact symbolic marginalization over learned digit predicates and compare it against a direct neural sum classifier under matched budgets and seeds.
+    \item We evaluate anchor and posterior-entropy ablations, showing that these additions improve over the direct baseline but do not beat the plain symbolic likelihood in this run.
+    \item We connect OOD accuracy to digit grounding, paired seed-level tests, and bootstrap confidence intervals over 192,000 per-example predictions.
+\end{itemize}
+
+\para{Paper organization.} \Secref{sec:related} positions the experiment relative to prior neural-symbolic systems. \Secref{sec:method} defines the task, models, and evaluation protocol. \Secref{sec:results} reports the main results, unseen-label analysis, grounding diagnostics, and statistical tests. \Secref{sec:discussion} discusses interpretation, limitations, and next steps.

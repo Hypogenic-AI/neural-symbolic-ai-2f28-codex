@@ -1,0 +1,14 @@
+\begin{table}[t]
+    \centering
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Method} & \textbf{1,000 labels digit acc. (\%)} & \textbf{5,000 labels digit acc. (\%)} \\
+        \midrule
+        \symbolicsum & 29.4 {\scriptsize $\pm$ 4.8} & {\bf 93.8} {\scriptsize $\pm$ 0.8} \\
+        \anchorsymbolic & {\bf 34.1} {\scriptsize $\pm$ 6.1} & 91.8 {\scriptsize $\pm$ 1.1} \\
+        \anchorposterior & 33.4 {\scriptsize $\pm$ 5.9} & 92.0 {\scriptsize $\pm$ 2.2} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Digit grounding accuracy for symbolic models on the MNIST test split. Values report mean and standard deviation over three seeds.}
+    \label{tab:digit_grounding}
+\end{table}

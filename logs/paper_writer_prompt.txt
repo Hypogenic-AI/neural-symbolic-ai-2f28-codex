@@ -1,0 +1,774 @@
+You are an academic paper writer. Generate a complete NEURIPS style paper
+based on the experiment results provided.
+
+════════════════════════════════════════════════════════════════════════════════
+                         IMPORTANT: BEFORE YOU START
+════════════════════════════════════════════════════════════════════════════════
+
+Before writing any content, you MUST complete these steps:
+
+1. READ THE SKILL: Review the paper-writer skill at .codex/skills/paper-writer/SKILL.md
+2. READ THE STYLE GUIDE: Study templates/paper_writing/lab_style_guide.md carefully
+3. REVIEW EXAMPLES: Browse paper_examples/ for formatting and language patterns:
+   - Look at sections/1.introduction.tex for language style
+   - Look at tables/*.tex for table formatting
+   - Look at commands/*.tex for macro usage
+4. VERIFY COMMAND TEMPLATES: Command templates (math.tex, general.tex, macros.tex) are pre-copied to paper_draft/commands/
+
+CRITICAL: Reference example papers for FORMATTING and LANGUAGE STYLE only.
+Do NOT copy content, phrasing, or narrative structure from the example papers.
+The examples are in a different research domain - focus only on presentation style.
+
+════════════════════════════════════════════════════════════════════════════════
+                            EXPERIMENT REPORT
+════════════════════════════════════════════════════════════════════════════════
+
+# Neural-Symbolic Learning Research Report
+
+## 1. Executive Summary
+
+This study tested whether neural-symbolic learning improves systematic generalization on an AddMNIST task where training excludes all high-plus-high digit pairs. The key finding is that symbolic composition is decisive once enough weak pair labels are available: with 5,000 pair labels, a plain neural-symbolic sum-likelihood model reached 82.5% OOD high-plus-high accuracy, while a direct pair CNN reached 0.3%.
+
+The proposed anchor-posterior variant was useful as an ablation but did not beat the simpler symbolic likelihood model. The strongest practical implication is that exact symbolic marginalization over learned digit predicates can extrapolate to output labels never observed during training, whereas a direct classifier over sum labels cannot.
+
+## 2. Research Question & Hypothesis
+
+**Question:** Can a compact neural-symbolic AddMNIST learner generalize to digit-pair sums never observed as training labels?
+
+**Hypothesis:** A model that learns digit perception but computes sums through a fixed symbolic addition table should outperform a direct neural sum classifier on high-plus-high digit pairs, especially for sums 14-18 that are absent from training.
+
+## 3. Literature Review Summary
+
+The resource review identified DeepProbLog, A-NeSI, Scallop, LTNtorch, Neural Logic Machines, and related systems as key neural-symbolic baselines. The shared lesson is that neural predicates plus symbolic inference can improve data efficiency and compositional generalization, but many reproduction stacks are heavy or dependency-fragile.
+
+This experiment used MNIST/AddMNIST because it is a standard neural-symbolic benchmark in DeepProbLog, A-NeSI, and Scallop-style work, while remaining small enough for a fully automated run. The designed gap was explicit OOD label extrapolation: not merely learning addition in-distribution, but predicting valid sums that never appeared as supervised labels.
+
+## 4. Methodology
+
+### Data
+
+- Dataset: local MNIST from `datasets/mnist/`.
+- Train split: 60,000 digit images.
+- Test split: 10,000 digit images.
+- Pair task: given two digit images, predict their sum in `{0, ..., 18}`.
+- Training restriction: exclude pairs where both digits are 5-9.
+- OOD split: include only pairs where both digits are 5-9.
+- Consequence: sums 14-18 are never observed as training labels, but are common in OOD high-plus-high evaluation.
+
+### Models
+
+- `direct_sum`: pure neural CNN over two image channels, trained with cross-entropy over sum labels.
+- `symbolic_sum`: shared digit CNN; pair-sum likelihood is computed by exact marginalization over all digit pairs satisfying `a + b = sum`.
+- `anchor_symbolic`: `symbolic_sum` plus 10 labeled digit anchors per class.
+- `anchor_posterior`: `anchor_symbolic` plus posterior entropy regularization over latent digit-pair assignments.
+
+### Protocol
+
+- Pair-label budgets: 1,000 and 5,000.
+- Seeds: 11, 23, 37.
+- Epochs: 15.
+- Batch size: 512.
+- Optimizer: AdamW, learning rate 1e-3, weight decay 1e-4.
+- Evaluation: 4,000 IID restricted pairs and 4,000 OOD high-plus-high pairs per run.
+- Statistical tests: paired seed-level t-tests for OOD accuracy, with Cohen's dz effect sizes; bootstrap 95% CIs over per-example predictions.
+
+### Environment
+
+- Python: 3.12.8.
+- PyTorch: 2.12.1+cu130.
+- TorchVision: 0.27.1+cu130.
+- GPU: NVIDIA RTX A6000, 47.4 GB; 4 GPUs detected, experiment used `cuda:0`.
+- Mixed precision: enabled.
+- Full metadata: `results/addmnist/metadata.json`.
+
+## 5. Results
+
+![Accuracy by method and budget](figures/accuracy_by_method_budget.png)
+
+| Budget | Method | IID acc (%) | OOD high+high acc (%) |
+| ------ | ------ | ----------- | --------------------- |
+| 1000 | direct_sum | 14.3 | 1.4 |
+| 1000 | symbolic_sum | 17.3 | 0.0 |
+| 1000 | anchor_symbolic | 19.9 | 0.0 |
+| 1000 | anchor_posterior | 18.9 | 0.0 |
+| 5000 | direct_sum | 31.8 | 0.3 |
+| 5000 | symbolic_sum | 90.0 | 82.5 |
+| 5000 | anchor_symbolic | 87.7 | 73.2 |
+| 5000 | anchor_posterior | 88.0 | 74.1 |
+
+At 1,000 pair labels, no symbolic method learned a stable enough digit grounding to solve high-plus-high OOD pairs. At 5,000 pair labels, the neural-symbolic methods sharply separated from the direct CNN. The plain symbolic likelihood was strongest, reaching 90.0% IID accuracy and 82.5% OOD accuracy.
+
+### Unseen Label Extrapolation
+
+For budget 5,000, OOD accuracy split by whether the sum label was seen during training:
+
+| Method | OOD sum region | Accuracy (%) | Examples |
+| ------ | -------------- | ------------ | -------- |
+| direct_sum | seen sums 10-13 | 0.9 | 4,432 |
+| symbolic_sum | seen sums 10-13 | 85.7 | 4,432 |
+| anchor_symbolic | seen sums 10-13 | 79.2 | 4,432 |
+| anchor_posterior | seen sums 10-13 | 80.6 | 4,432 |
+| direct_sum | unseen sums 14-18 | 0.0 | 7,568 |
+| symbolic_sum | unseen sums 14-18 | 80.6 | 7,568 |
+| anchor_symbolic | unseen sums 14-18 | 69.7 | 7,568 |
+| anchor_posterior | unseen sums 14-18 | 70.3 | 7,568 |
+
+![OOD accuracy by sum](figures/ood_accuracy_by_sum.png)
+
+### Digit Grounding
+
+![Digit grounding](figures/digit_grounding.png)
+
+| Method | Budget | Digit acc mean (%) | Digit acc std (%) | Runs |
+| ------ | ------ | ------------------ | ----------------- | ---- |
+| symbolic_sum | 1000 | 29.4 | 4.8 | 3 |
+| anchor_symbolic | 1000 | 34.1 | 6.1 | 3 |
+| anchor_posterior | 1000 | 33.4 | 5.9 | 3 |
+| symbolic_sum | 5000 | 93.8 | 0.8 | 3 |
+| anchor_symbolic | 5000 | 91.8 | 1.1 | 3 |
+| anchor_posterior | 5000 | 92.0 | 2.2 | 3 |
+
+The strong 5,000-label OOD result coincided with high digit grounding accuracy. This supports the interpretation that the model learned reusable digit predicates rather than a shortcut over pair labels.
+
+### Statistical Summary
+
+For budget 5,000 OOD high-plus-high accuracy:
+
+| Method A | Method B | Mean A (%) | Mean B (%) | Diff (%) | Cohen dz | p-value | Seeds |
+| -------- | -------- | ---------- | ---------- | -------- | -------- | ------- | ----- |
+| anchor_posterior | direct_sum | 74.1 | 0.3 | 73.8 | 9.33 | 0.0038 | 3 |
+| anchor_symbolic | direct_sum | 73.2 | 0.3 | 72.9 | 16.67 | 0.0012 | 3 |
+| symbolic_sum | direct_sum | 82.5 | 0.3 | 82.2 | 20.75 | 0.0008 | 3 |
+
+Bootstrap 95% CI for 5,000-label OOD accuracy:
+
+- `symbolic_sum`: 81.8% to 83.2%.
+- `anchor_symbolic`: 72.4% to 74.0%.
+- `anchor_posterior`: 73.3% to 74.8%.
+- `direct_sum`: 0.2% to 0.4%.
+
+Raw outputs are saved in `results/addmnist/predictions.csv`; aggregate tables are in `results/addmnist/summary_pair_metrics.csv`, `results/addmnist/summary_digit_metrics.csv`, `results/addmnist/statistical_tests.csv`, and `results/addmnist/ood_sum_region_summary.csv`.
+
+## 6. Analysis & Discussion
+
+The experiment supports the broader neural-symbolic hypothesis: symbolic structure enabled label extrapolation that a direct classifier did not achieve. The direct CNN had no training examples for sums 14-18 and learned a distribution-bound mapping from image pairs to observed labels. In contrast, `symbolic_sum` learned digit predicates and used the addition table to produce valid labels outside the supervised label support.
+
+The most important negative result is that the planned anchor-posterior modification was not the best method. At 5,000 pair labels, weak sum-likelihood alone achieved the highest digit accuracy and OOD sum accuracy. The anchor and entropy terms may have over-constrained early latent assignments or over-weighted the small anchor set relative to the pair-label signal.
+
+The 1,000-label condition is also informative. All methods performed poorly on OOD high-plus-high pairs, showing that symbolic structure is not magic: the perception predicates must be learned well enough before symbolic composition helps.
+
+## 7. Limitations & Threats to Validity
+
+- MNIST/AddMNIST is synthetic and much simpler than language, visual QA, or knowledge-graph neural-symbolic reasoning.
+- The direct CNN baseline is structurally disadvantaged for labels absent from training; this is intentional for the extrapolation test, but it should not be interpreted as a universal neural baseline failure.
+- Only three seeds were run. The effects at budget 5,000 are large and consistent, but p-values are exploratory.
+- Hyperparameters were not exhaustively tuned. The anchor-posterior method might improve with a different anchor weight, entropy coefficient, schedule, or stronger augmentation.
+- The symbolic rule was known and exact. This does not test learned rule induction.
+- OOD pairs use the same MNIST test distribution, so the experiment tests compositional label extrapolation, not visual domain shift.
+
+## 8. Reproducibility & Validation
+
+Code:
+
+- `src/addmnist_experiment.py`
+- `src/analyze_results.py`
+
+Run commands:
+
+```bash
+source .venv/bin/activate
+python src/addmnist_experiment.py --output-dir results/addmnist --budgets 1000 5000 --seeds 11 23 37 --epochs 15 --batch-size 512 --eval-pairs 4000
+python src/analyze_results.py --results-dir results/addmnist --figures-dir figures
+```
+
+Validation performed:
+
+- `python -m py_compile src/addmnist_experiment.py src/analyze_results.py` passed.
+- Same-seed deterministic rerun produced identical metrics and predictions in `results/repro_a/` and `results/repro_b/`, ignoring expected runtime differences.
+- Results contain 66 metric rows and 192,000 per-example predictions.
+- Random seeds are set for Python, NumPy, and PyTorch; deterministic cuDNN settings are enabled.
+
+## 9. Conclusions & Next Steps
+
+The clear answer is that neural-symbolic learning can produce strong systematic generalization in this controlled AddMNIST setting, but only after the neural predicates are sufficiently grounded. The simplest symbolic likelihood model was the strongest method, achieving 80.6% accuracy on sums 14-18 that never appeared as training labels.
+
+Recommended follow-up experiments:
+
+1. Tune anchor and posterior schedules rather than applying them uniformly from the first epoch.
+2. Extend the same protocol to three-digit arithmetic where exact symbolic marginalization becomes more expensive.
+3. Compare against Scallop or DeepProbLog implementations once dependency modernization is complete.
+4. Add noisy or shifted MNIST variants to test whether symbolic composition remains robust under perceptual domain shift.
+
+## References
+
+- Manhaeve et al., "DeepProbLog: Neural Probabilistic Logic Programming", NeurIPS 2018. Local PDF: `papers/1805.10872_deepproblog_neural_probabilistic_logic_programming.pdf`.
+- van Krieken et al., "A-NeSI: A Scalable Approximate Method for Probabilistic Neurosymbolic Inference", 2023. Local PDF: `papers/2212.12393_a_nesi_approximate_neurosymbolic_inference.pdf`.
+- Li, Huang, and Naik, "Scallop: A Language for Neurosymbolic Programming", 2023. Local PDF: `papers/2304.04812_scallop_language_for_neurosymbolic_programming.pdf`.
+- Carraro et al., "LTNtorch: PyTorch Logic Tensor Networks", 2024. Local PDF: `papers/2409.16045_ltntorch_pytorch_logic_tensor_networks.pdf`.
+- LeCun et al., MNIST dataset, local copy in `datasets/mnist/`.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            RESEARCH PLAN
+════════════════════════════════════════════════════════════════════════════════
+
+# Neural-Symbolic Learning Research Plan
+
+## Motivation & Novelty Assessment
+
+### Why This Research Matters
+Neural-symbolic learning promises models that learn perception from data while preserving compositional reasoning rules that generalize beyond the training distribution. This matters for AI systems that must extrapolate reliably from sparse supervision, especially where purely neural classifiers memorize observed labels and fail on unseen combinations.
+
+### Gap in Existing Work
+The gathered literature shows strong frameworks for probabilistic neural predicates (DeepProbLog, A-NeSI), differentiable logic (LTNtorch), and declarative Datalog-style reasoning (Scallop), but practical first-pass experiments often either rely on exact inference stacks with dependency drift or test only in-distribution accuracy. A useful gap is a compact, reproducible experiment that separates perceptual learning from symbolic extrapolation and explicitly tests unseen output labels created only by composition.
+
+### Our Novel Contribution
+This session tests an anchor-posterior AddMNIST learner: a shared digit CNN is trained mostly from pair-level sum labels through a symbolic marginalization layer, with a tiny set of digit anchors and a posterior entropy regularizer to ground and sharpen latent digit assignments. The "cool" stress test is high-plus-high addition: training excludes pairs where both digits are 5-9, so sums 14-18 are never directly observed as labels, but a symbolic model can still generate them by composing learned digit concepts.
+
+### Experiment Justification
+- Experiment 1: In-distribution low/high AddMNIST. This checks whether each method can learn the supervised training distribution without the OOD stressor.
+- Experiment 2: High-plus-high compositional OOD test. This directly tests whether symbolic composition predicts unseen sums that a direct neural label classifier cannot learn from examples.
+- Experiment 3: Data-efficiency and ablation across training sizes and seeds. This tests whether the proposed anchor-posterior components improve reliability rather than succeeding due to one lucky split.
+- Experiment 4: Digit grounding/error analysis. This checks whether the symbolic model learns interpretable digit predicates, not just correct aggregate sums.
+
+## Research Question
+Can a compact neural-symbolic AddMNIST learner with tiny digit anchors and posterior sharpening achieve better systematic generalization than direct neural sum prediction when some output sums are never observed during training?
+
+## Background and Motivation
+DeepProbLog and A-NeSI demonstrate that neural predicates embedded in probabilistic logic can solve MNIST arithmetic from weak labels, while Scallop and LTNtorch show alternative differentiable or declarative reasoning routes. The core unresolved issue for a quick automated study is not whether logic can encode addition, but whether symbolic structure improves data efficiency and out-of-distribution generalization under a fair, runnable protocol.
+
+## Hypothesis Decomposition
+- H1: A direct pair-image CNN trained only on observed sum labels will perform well in-distribution but fail on held-out sums 14-18 because those labels never appear in training.
+- H2: A neural-symbolic sum-likelihood model can predict unseen sums by composing digit probabilities, but may be unstable without grounding.
+- H3: Adding a small balanced digit-anchor set and posterior entropy regularization improves both digit grounding and OOD sum accuracy.
+- H4: Improvements should persist across random seeds and at multiple pair-label budgets.
+
+Independent variables are model condition, pair-label budget, and random seed. Dependent variables are IID sum accuracy, OOD high-plus-high sum accuracy, digit accuracy for symbolic models, negative log-likelihood, runtime, and calibration-style confidence summaries.
+
+## Proposed Methodology
+
+### Approach
+Use the downloaded MNIST dataset to construct AddMNIST pairs. Training pairs exclude the high-plus-high region where both digits are 5-9, while IID validation/test pairs follow the same restriction and OOD test pairs contain only high-plus-high examples. This creates a clean compositional generalization test where labels 14-18 are absent from training but mathematically valid.
+
+### Experimental Steps
+1. Load MNIST from `datasets/mnist/`, convert images to normalized tensors, and validate label counts.
+2. Generate deterministic pair datasets for each seed and pair-label budget, excluding high-plus-high pairs for training and IID evaluation.
+3. Train a direct pair CNN baseline that predicts the sum label from two images.
+4. Train a neural-symbolic sum-likelihood model with a shared digit CNN and exact symbolic marginalization over all digit pairs consistent with each sum.
+5. Train the proposed anchor-posterior model by adding 10 digit anchors per class and entropy regularization over the posterior distribution of latent digit pairs given the observed sum.
+6. Evaluate all conditions on IID and OOD pairs; evaluate digit grounding for symbolic models.
+7. Run paired statistical comparisons across seeds and bootstrap confidence intervals over examples for the main OOD metric.
+
+### Baselines
+- `direct_sum`: a pure neural two-image CNN trained with cross-entropy over observed sum labels.
+- `symbolic_sum`: a neural-symbolic weak-label baseline trained only with sum-likelihood through a fixed addition table.
+- `anchor_symbolic`: symbolic sum-likelihood plus a tiny balanced digit-anchor loss.
+- `anchor_posterior`: the proposed method, adding posterior entropy sharpening to `anchor_symbolic`.
+
+### Evaluation Metrics
+- Sum accuracy on IID restricted pairs: verifies in-distribution learning.
+- Sum accuracy on OOD high-plus-high pairs: primary systematic generalization metric.
+- Macro F1 on sum labels: reduces sensitivity to label imbalance.
+- Digit accuracy for symbolic models: measures whether learned predicates align with human digit classes.
+- Negative log-likelihood and mean confidence: sanity-check calibration and overconfidence.
+- Training time: documents compute cost.
+
+### Statistical Analysis Plan
+For each pair budget, compare OOD accuracy by paired seed-level differences. Use paired t-tests as descriptive statistics, report effect sizes (Cohen's dz), and add bootstrap 95% confidence intervals over example-level OOD accuracy for the final model. With only three seeds, p-values will be treated as exploratory and effect size/consistency will drive interpretation.
+
+## Expected Outcomes
+Results support the hypothesis if `anchor_posterior` or `anchor_symbolic` substantially outperforms `direct_sum` on high-plus-high OOD accuracy while preserving reasonable IID accuracy. Results refute or weaken the hypothesis if the direct baseline matches symbolic OOD performance or if symbolic methods fail to learn grounded digit predicates.
+
+## Timeline and Milestones
+- Resource and environment verification: 10-20 minutes.
+- Implementation: 60-90 minutes for data construction, models, training loop, and evaluation.
+- Experiment execution: 60-90 minutes for multiple seeds and budgets on GPU.
+- Analysis and documentation: 45-75 minutes for tables, figures, statistical tests, and final report.
+
+## Potential Challenges
+- Weak sum labels can produce latent-label symmetries; the balanced anchor set is designed to break them.
+- Direct baselines may be structurally unable to predict unseen classes; this is a valid limitation and the key compositional stress test, so IID results are reported alongside OOD.
+- Training many runs can be slow; if needed, reduce epochs before reducing seeds.
+- GPU package compatibility may fail; if CUDA is unavailable, the same scripts run on CPU with smaller budgets.
+
+## Success Criteria
+The research succeeds if it produces a runnable experiment, saved raw results, statistical summaries, figures, and a report with honest conclusions about when the neural-symbolic method improves over baselines. A strong positive result is a large OOD gain for symbolic methods on unseen sums 14-18 with interpretable digit accuracy above chance.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          LITERATURE REVIEW
+════════════════════════════════════════════════════════════════════════════════
+
+# Literature Review: Neural-Symbolic Learning
+
+## Review Scope
+
+### Research Question
+
+What neural-symbolic learning approaches are most suitable for achieving improved data efficiency, systematic generalization, interpretability, or scalable reasoning, and what resources support rapid experimentation?
+
+### Inclusion Criteria
+
+- Papers combining neural learning with symbolic logic, programs, rules, knowledge graphs, or structured reasoning.
+- Work with downloadable code, datasets, or clear benchmark protocols.
+- Recent surveys plus foundational method papers needed for baselines.
+- Benchmarks suitable for automated experiments in this workspace.
+
+### Exclusion Criteria
+
+- Purely neural reasoning papers without symbolic structure or constraints.
+- Pure symbolic systems without learning.
+- Large visual datasets that are useful but too large for the resource phase, unless documented as optional.
+
+### Time Frame
+
+Foundational work from 2015-2022 plus recent work through June 29, 2026.
+
+### Sources
+
+- Local paper-finder was attempted in diligent and fast modes but timed out.
+- Manual search used arXiv, Semantic Scholar-style web search, Papers with Code/GitHub search, Hugging Face dataset search, and official project repositories.
+
+## Search Log
+
+| Date | Query | Source | Results | Notes |
+|------|-------|--------|---------|-------|
+| 2026-06-29 | "neural-symbolic learning neuro-symbolic reasoning differentiable logic" | paper-finder | timed out | Fell back to manual/API search. |
+| 2026-06-29 | "neural-symbolic learning survey 2024 arXiv" | Web/arXiv | multiple | Found recent surveys and KG reasoning survey. |
+| 2026-06-29 | "DeepProbLog Logic Tensor Networks Neural Logic Machines" | Web/arXiv | multiple | Found core differentiable/probabilistic logic baselines. |
+| 2026-06-29 | "Scallop neurosymbolic programming GitHub" | Web/GitHub | multiple | Found Scallop and Lobster implementations. |
+| 2026-06-29 | "CLUTRR bAbI MNIST Hugging Face" | Web/HF | multiple | Selected small reasoning/perception datasets. |
+
+## Key Papers
+
+### Scallop: A Language for Neurosymbolic Programming
+
+- Authors: Ziyang Li, Jiani Huang, Mayur Naik
+- Year/source: 2023, arXiv/PLDI
+- Key contribution: A Datalog-like language with discrete, probabilistic, and differentiable reasoning via provenance semirings.
+- Methodology: Symbolic reasoning programs are written declaratively; neural modules provide uncertain facts; differentiable reasoning supports end-to-end training.
+- Datasets/tasks: Suite of eight tasks spanning MNIST arithmetic, handwritten formula evaluation, CLUTRR-like text reasoning, pathfinding, and other structured tasks.
+- Baselines: Pure neural models and task-specific neurosymbolic systems.
+- Results: Comparable or better accuracy with improvements in runtime, data efficiency, interpretability, or generalization depending on task.
+- Code: `code/scallop/`.
+- Relevance: Best general-purpose framework for new experiments in this workspace.
+
+### DeepProbLog: Neural Probabilistic Logic Programming
+
+- Authors: Robin Manhaeve, Sebastijan Dumancic, Angelika Kimmig, Thomas Demeester, Luc De Raedt
+- Year/source: 2018, NeurIPS/arXiv
+- Key contribution: Adds neural predicates to ProbLog so neural outputs can appear as probabilistic facts in logic programs.
+- Methodology: Uses knowledge compilation and automatic differentiation through probabilistic logic inference.
+- Datasets/tasks: MNIST addition, program induction, probabilistic reasoning examples.
+- Baselines: CNN-only and differentiable-programming approaches.
+- Results: Shows that explicit background knowledge improves sample efficiency and structured reasoning relative to black-box neural baselines.
+- Code: `code/deepproblog/`.
+- Relevance: Foundational probabilistic neurosymbolic baseline.
+
+### Logic Tensor Networks and LTNtorch
+
+- Authors: LTN authors; LTNtorch by Tommaso Carraro and collaborators
+- Year/source: 2020 and 2024, arXiv
+- Key contribution: Real Logic grounds first-order logic into differentiable tensor operations; LTNtorch makes this practical in PyTorch.
+- Methodology: Logical axioms become satisfaction objectives; predicates/functions/constants are learnable modules.
+- Datasets/tasks: Classification, multi-label learning, semi-supervised learning, regression, clustering, and embedding examples.
+- Baselines: Standard supervised neural learning, fuzzy-logic variants, and other constraint-learning approaches.
+- Results: Useful where domain constraints are reliable; performance depends on fuzzy operator choice and balancing rule satisfaction with predictive accuracy.
+- Code: `code/LTNtorch/`.
+- Relevance: Lightweight baseline for testing differentiable logical constraints.
+
+### Neural Logic Machines
+
+- Authors: Honghua Dong, Jiayuan Mao, Tian Lin, Chong Wang, Lihong Li, Denny Zhou
+- Year/source: 2019, ICLR/arXiv
+- Key contribution: Tensorized architecture for learning lifted logic rules over objects and relations.
+- Methodology: Predicate tensors are transformed by neural logic layers approximating logical operations and quantifiers.
+- Datasets/tasks: Family tree reasoning, graph reasoning, sorting, shortest path, and blocks world.
+- Baselines: Memory Networks, differentiable ILP, DNC, and task-specific neural baselines.
+- Results: Reports perfect or near-perfect generalization on several small-to-large systematic generalization tasks.
+- Code: `code/neural-logic-machines/`.
+- Relevance: Important benchmark for rule-learning and generalization, but dependency stack is old.
+
+### The Neuro-Symbolic Concept Learner
+
+- Authors: Jiayuan Mao, Chuang Gan, Pushmeet Kohli, Joshua B. Tenenbaum, Jiajun Wu
+- Year/source: 2019, ICLR/arXiv
+- Key contribution: Learns visual concepts and language concepts from image-question-answer pairs, then executes symbolic programs over object-centric representations.
+- Methodology: Neural perception module, semantic parser, and symbolic program executor are trained through natural supervision.
+- Datasets/tasks: CLEVR and CLEVR-CoGenT; paper emphasizes learning from fewer images and generalizing to longer programs/new concepts.
+- Baselines: Visual reasoning models such as Relation Networks, FiLM-style models, IEP/NMN-style systems, and related VQA models.
+- Results: Strong CLEVR performance and interpretability through explicit programs and object concepts.
+- Code: `code/NSCL-PyTorch-Release/`.
+- Relevance: Reference model for object-centric visual reasoning, but full CLEVR is large.
+
+### A-NeSI
+
+- Authors: Emile van Krieken, Thiviyan Thanapalasingam, Jakub M. Tomczak, Frank van Harmelen, Annette ten Teije
+- Year/source: 2022/2023, NeurIPS/arXiv
+- Key contribution: Approximate inference for probabilistic neurosymbolic learning without relaxing discrete logical semantics.
+- Methodology: Trains prediction and explanation networks using synthetic data generated from background knowledge; uses approximate inference to avoid exponential exact inference.
+- Datasets/tasks: Multi-digit MNISTAdd, path planning, visual sudoku.
+- Baselines: Exact probabilistic inference methods such as DeepProbLog plus neural approximations.
+- Results: Keeps logical guarantees at test time while scaling to larger combinatorial tasks than exact inference.
+- Code: `code/a-nesi/`.
+- Relevance: Strong candidate baseline for scalable probabilistic reasoning.
+
+### DeepStochLog
+
+- Authors: Robin Manhaeve, Giuseppe Marra, Angelika Kimmig, Luc De Raedt
+- Year/source: 2021, arXiv
+- Key contribution: Neural stochastic logic programming based on stochastic definite clause grammars.
+- Methodology: Models distributions over derivations rather than possible worlds, improving inference scalability for grammar-like tasks.
+- Datasets/tasks: Challenging neural-symbolic learning tasks, including structured sequence and arithmetic-style settings.
+- Baselines: DeepProbLog and related probabilistic logic approaches.
+- Results: Improves scalability and reports strong results on tasks where possible-world inference is expensive.
+- Code: no separate repo cloned; conceptually relevant to probabilistic baselines.
+- Relevance: Useful design alternative if DeepProbLog inference is the bottleneck.
+
+### Logical Neural Networks
+
+- Authors: IBM Research team
+- Year/source: 2020, arXiv
+- Key contribution: Neural units correspond to weighted real-valued logic formulas, enabling bidirectional inference and contradiction-aware learning.
+- Methodology: Logic formulas define network structure and learning minimizes contradiction.
+- Datasets/tasks: Knowledge reasoning and formula-grounded inference tasks.
+- Baselines: Standard neural models and symbolic logic systems.
+- Results: Emphasizes interpretability, incomplete knowledge, and open-world reasoning.
+- Code: not cloned as primary baseline.
+- Relevance: Useful conceptual baseline for interpretable formula-level reasoning.
+
+### Lobster
+
+- Authors: Paul Biberstein, Ziyang Li, Joseph Devietti, Mayur Naik
+- Year/source: 2025, arXiv/ASPLOS
+- Key contribution: GPU execution for Scallop-style neurosymbolic Datalog programs.
+- Methodology: Compiles Datalog reasoning to a GPU-oriented intermediate representation and supports several provenance modes.
+- Datasets/tasks: Eight applications across NLP, image processing, program reasoning, bioinformatics, and planning.
+- Baselines: Scallop, CPU Datalog engines, and task-specific neurosymbolic systems.
+- Results: Reports multi-fold speedups over Scallop on supported workloads.
+- Code: `code/Lobster/`.
+- Relevance: Scalability direction, but hardware/build requirements are high.
+
+### ANDRE
+
+- Authors: Iman Sharifi, Peng Wei, Saber Fallah
+- Year/source: 2026, arXiv
+- Key contribution: Attention-based differentiable rule extractor for ILP under noise and probabilistic predicates.
+- Methodology: Learns first-order rules by optimizing a continuous rule space with attention-driven conjunction/disjunction operators.
+- Datasets/tasks: Classical ILP benchmarks, large-scale knowledge bases, and synthetic noisy probabilistic datasets.
+- Baselines: Symbolic ILP and differentiable ILP systems.
+- Results: Claims competitive or superior predictive performance and better rule recovery under uncertainty.
+- Code: no implementation located during search.
+- Relevance: Recent idea for novel rule induction, but implementation availability is a gap.
+
+### Right for the Right Concept
+
+- Authors: Wolfgang Stammer, Patrick Schramowski, Kristian Kersting
+- Year/source: 2021, CVPR
+- Key contribution: Concept-level explanatory interactive learning for neuro-symbolic concept learners.
+- Methodology: Uses semantic/concept explanations to revise model behavior, e.g. avoiding shortcut concepts.
+- Datasets/tasks: CLEVR-Hans and ColorMNIST.
+- Baselines: CNN explanation-guided learning and neuro-symbolic concept learner variants.
+- Results: Demonstrates value of semantic explanations for correcting confounded visual reasoning.
+- Code: `code/NeSyXIL/`.
+- Relevance: Good experimental direction for shortcut learning and intervention quality.
+
+### Surveys and Benchmark Papers
+
+- `Neuro-Symbolic AI in 2024` identifies heavy concentration in learning/inference, logic/reasoning, and knowledge representation, with gaps in explainability, trustworthiness, and meta-cognition.
+- `Neuro-Symbolic AI: Explainability, Challenges, and Future Trends` argues that symbolic components do not automatically make a system explainable; explanation should be evaluated at design and behavior levels.
+- `Neural-Symbolic Reasoning over Knowledge Graphs` surveys KG reasoning taxonomies and LLM/KG integration opportunities.
+- CLUTRR, bAbI, and CLEVR papers define the downloaded or documented benchmarks.
+
+## Common Methodologies
+
+- Neural predicates in probabilistic logic: DeepProbLog and A-NeSI connect neural perception with discrete symbolic reasoning.
+- Differentiable fuzzy logic: LTN encodes rules as loss terms through fuzzy truth values.
+- Differentiable Datalog/provenance semirings: Scallop and Lobster execute declarative rules with differentiable or probabilistic semantics.
+- Object-centric program execution: NS-CL separates perception, parsing, and symbolic execution for visual reasoning.
+- Tensorized lifted rules: NLM learns reusable relational rules that generalize across entity counts.
+- Interactive concept correction: NeSyXIL intervenes on semantic concepts rather than raw pixels.
+
+## Standard Baselines
+
+- Pure neural: CNN/MLP for MNIST/AddMNIST, RNN/Transformer/Memory Network for bAbI and CLUTRR, CNN/ResNet for ColorMNIST or CLEVR-Hans.
+- Probabilistic neurosymbolic: DeepProbLog, A-NeSI, DeepStochLog.
+- Differentiable logic: LTN/LTNtorch, differentiable ILP variants, logical neural networks.
+- Declarative neurosymbolic: Scallop and Lobster.
+- Relational generalization: Neural Logic Machines, differentiable ILP, graph neural networks.
+
+## Evaluation Metrics
+
+- Accuracy: primary metric for bAbI QA, CLUTRR relation classification, MNIST arithmetic, CLEVR QA, and ColorMNIST.
+- Systematic generalization: accuracy by relation/path length, number of entities, number of digits, or program length.
+- Logical satisfaction: average formula satisfaction or constraint-violation rate for LTN-style systems.
+- Explanation quality: concept-rule correctness, rule recovery, explanation faithfulness, and intervention success.
+- Runtime/scalability: training time, inference time, timeout rate, speedup versus exact inference or CPU symbolic execution.
+- Data efficiency: accuracy as labeled examples are reduced.
+
+## Datasets in the Literature
+
+- MNIST/AddMNIST: used by DeepProbLog, A-NeSI, Scallop, and many neurosymbolic examples for weakly supervised perception plus arithmetic.
+- CLUTRR: text-based family-relation reasoning; suitable for rules, proof paths, and out-of-distribution relation length generalization.
+- bAbI: controlled text QA tasks covering prerequisite reasoning skills.
+- CLEVR/CLEVR-CoGenT: visual question answering and compositional visual reasoning; important but large.
+- CLEVR-Hans/ColorMNIST: confounded visual reasoning and shortcut correction.
+- Family tree, graph, sorting, shortest path, blocks world: NLM-style relational and planning tasks.
+
+## Gaps and Opportunities
+
+- Scalability remains unresolved: exact probabilistic logic inference is often exponential; GPU Datalog and approximate inference are promising but not yet broadly easy to use.
+- Explainability is not guaranteed by adding symbols; it needs behavioral validation and intervention tests.
+- Many benchmarks are synthetic, so robustness to noisy perception and ambiguous language should be tested deliberately.
+- Dependency drift is significant: several important repos assume old PyTorch/conda/Jacinle stacks.
+- Recent differentiable rule extraction work such as ANDRE is promising but lacks readily available code.
+
+## Recommendations for Our Experiment
+
+- Primary small datasets: CLUTRR for text relational reasoning, bAbI for controlled QA, and MNIST for AddMNIST-style perception plus logic.
+- First baselines: LTNtorch for constraint-learning, Scallop for declarative differentiable rules, and DeepProbLog for probabilistic neural predicates.
+- Stretch baselines: A-NeSI for scalable approximate inference; NLM for systematic generalization if dependency modernization is feasible.
+- Avoid first-pass dependency risk: do not start with full CLEVR/NS-CL unless GPU and CLEVR preprocessing are available.
+- Recommended metrics: accuracy, OOD/path-length accuracy, constraint satisfaction, data-efficiency curves, and runtime.
+- Promising novel direction: compare a declarative-rule model against an approximate probabilistic model on CLUTRR and AddMNIST, then add learned rule selection or concept-intervention diagnostics to test whether improvements come from real symbolic structure rather than shortcut learning.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          PAPER REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+Generate a complete academic paper with the following structure:
+
+1. TITLE
+   - Clear, specific, informative
+   - Should convey main finding or contribution
+
+2. AUTHOR
+   - Use this exact author line in the \author{} block: Chenhao Tan and NeuriCo
+
+3. ABSTRACT (150-250 words)
+   - Problem statement
+   - Approach
+   - Key results
+   - Significance
+
+4. INTRODUCTION
+   - Research problem and motivation
+   - Gap in existing work
+   - Our contribution (be specific)
+   - Paper organization
+
+5. RELATED WORK
+   - Organized by theme/approach
+   - Position our work relative to prior work
+   - Cite papers from literature review
+
+6. METHODOLOGY
+   - Clear description of approach
+   - Experimental setup
+   - Datasets used
+   - Evaluation metrics
+   - Baselines
+
+7. RESULTS
+   - Present results with tables and figures
+   - Statistical analysis
+   - Comparison to baselines
+   - Ablation studies (if applicable)
+
+8. DISCUSSION
+   - Interpretation of results
+   - Limitations
+   - Broader implications
+
+9. CONCLUSION
+   - Summary of contributions
+   - Key findings
+   - Future work
+
+10. REFERENCES
+   - BibTeX format
+   - All cited papers
+
+════════════════════════════════════════════════════════════════════════════════
+                          OUTPUT FORMAT
+════════════════════════════════════════════════════════════════════════════════
+
+Create a MODULAR LaTeX project with the following directory structure:
+
+paper_draft/
+├── main.tex              # Main file that imports all sections
+├── references.bib        # BibTeX references
+├── sections/
+│   ├── abstract.tex      # Abstract content
+│   ├── introduction.tex  # Introduction section
+│   ├── related_work.tex  # Related work section
+│   ├── methodology.tex   # Methodology section
+│   ├── results.tex       # Results section
+│   ├── discussion.tex    # Discussion section
+│   └── conclusion.tex    # Conclusion section
+├── figures/              # Directory for any generated figures
+├── tables/               # Directory for complex standalone tables
+└── appendix/             # Directory for appendix sections (if needed)
+
+INSTRUCTIONS:
+1. First, create the directory structure above (mkdir -p paper_draft/sections paper_draft/figures paper_draft/tables paper_draft/appendix)
+2. Write main.tex using the EXACT preamble for NEURIPS:
+
+   \documentclass{article}
+   \usepackage[final]{neurips_2025}  % NEURIPS style (neurips_2025.sty is in paper_draft/)
+   \usepackage[hidelinks]{hyperref}  % REQUIRED: clickable links
+   \usepackage{booktabs}  % REQUIRED: professional tables
+   \usepackage{graphicx}
+   \usepackage{amsmath,amssymb}
+
+   % Import command files
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+   % Use this bibliography style:
+   \bibliographystyle{plainnat}
+
+   \author{Chenhao Tan and NeuriCo}
+
+   - Use \input{sections/...} to include each section
+   - Use \bibliography{references} for references
+3. Write each section file with COMPLETE content (no placeholders)
+4. Each section file should include its \section{} command
+5. Write references.bib with all citations in BibTeX format
+6. After writing all files, compile the paper:
+   cd paper_draft && pdflatex -interaction=nonstopmode main.tex && bibtex main && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex
+
+This modular structure allows humans to easily:
+- Edit individual sections without navigating a large file
+- Track changes per section
+- Reuse sections across different paper versions
+
+════════════════════════════════════════════════════════════════════════════════
+                          QUALITY REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+- Academic tone throughout
+- All claims must be supported by data from the experiment report
+- Proper citations using \cite{} commands
+- Clear figures and tables with proper captions
+- NO placeholder text - every section must have real content
+- The paper MUST compile without errors
+- If compilation fails, debug and fix the LaTeX errors
+
+════════════════════════════════════════════════════════════════════════════════
+                          LAB WRITING STYLE
+════════════════════════════════════════════════════════════════════════════════
+
+Follow these lab-specific conventions to match our paper style:
+
+1. LANGUAGE STYLE:
+   - Use active voice: "We propose", "We examine", "We focus on"
+   - Be direct and confident: "Our main question is...", "We hypothesize that..."
+   - State things clearly and simply - prefer plain language over jargon
+   - Use bold questions as paragraph organizers: {\bf what is X?}
+   - Include specific quantitative claims: "8.97% over baseline"
+   - Avoid fancy wording: "utilize" → "use", "facilitate" → "help"
+
+2. INTRODUCTION STRUCTURE:
+   - Engaging hook (get to the point quickly)
+   - Problem importance
+   - Gap identification
+   - Your approach with method figure reference
+   - Quantitative preview of results
+   - Contribution bullets (3-4 items, action verbs)
+
+3. CONTRIBUTION LISTS:
+   \begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+       \item We propose...
+       \item We conduct...
+       \item We complement...
+   \end{itemize}
+
+4. MODULAR COMMANDS STRUCTURE:
+   Command templates are pre-copied to paper_draft/commands/:
+   - math.tex: Math notation macros
+   - general.tex: Formatting macros
+   - macros.tex: Project-specific term definitions (customize this for your paper)
+
+   In main.tex, include:
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+5. REFERENCE CONVENTIONS:
+   Use reference macros from math.tex:
+   - \figref{fig:name} for "figure 1" (lowercase, in-sentence)
+   - \Figref{fig:name} for "Figure 1" (capitalized, start of sentence)
+   - \secref{sec:name} for "section 2"
+
+6. TEXT FORMATTING:
+   - Use \para{Header text} for bold paragraph headers
+   - Define method/dataset names with \textsc and \xspace:
+     \newcommand{\methodname}{\textsc{MethodName}\xspace}
+
+7. TABLE FORMATTING:
+   - Use booktabs package (no vertical lines)
+   - Use \resizebox{\textwidth}{!}{...} for wide tables
+   - Use @{} to remove padding at table edges
+   - Use \cmidrule(lr){x-y} for sub-headers
+   - Use \textsc{} for dataset/method names in headers
+   - Bold best results with {\bf ...}
+
+8. FIGURE FORMATTING:
+   - Use 0.32\textwidth for 3-column subfigures
+   - Use 0.95\linewidth for full-width figures
+   - Use \input{figures/legend} for shared legends
+   - Write self-contained captions explaining key observations
+
+9. RESULTS PRESENTATION:
+   - Define \increase and \decrease for colored arrows (green up, red down)
+   - Bold best results in tables
+   - Report confidence intervals when available
+
+10. ALGORITHM STYLING:
+    - Use algpseudocode with [noend]
+    - Use \triangleright for comments
+
+11. HYPERLINKS (REQUIRED):
+    - Always use \usepackage[hidelinks]{hyperref} or with colored links
+    - All citations, section refs, figure refs, table refs must be clickable
+    - This is essential for reader navigation
+
+════════════════════════════════════════════════════════════════════════════════
+                          WORKFLOW: REVIEW AND REFLECT
+════════════════════════════════════════════════════════════════════════════════
+
+Before calling finish, you MUST complete these review steps:
+
+1. REVIEW RESOURCES (at the start):
+   - Read .codex/skills/paper-writer/SKILL.md for detailed guidance
+   - Study templates/paper_writing/lab_style_guide.md for style conventions
+   - Browse paper_examples/ for formatting and language patterns
+
+2. SELF-REFLECTION (before finishing):
+   After writing all sections, review your work against these criteria:
+
+   LANGUAGE CHECK:
+   - [ ] Is the writing clear and jargon-free?
+   - [ ] Are claims specific with quantitative support?
+   - [ ] Is active voice used throughout?
+
+   FORMATTING CHECK:
+   - [ ] Does main.tex include \input{commands/math}, \input{commands/general}, \input{commands/macros}?
+   - [ ] Is hyperref package included for clickable references?
+   - [ ] Do tables use booktabs (no vertical lines)?
+   - [ ] Are best results bolded in tables?
+   - [ ] Are figures/tables properly captioned?
+
+   STRUCTURE CHECK:
+   - [ ] Does introduction follow: hook → importance → gap → approach → preview → contributions?
+   - [ ] Are contribution bullets specific with action verbs?
+   - [ ] Does the paper compile without errors?
+
+3. FIX ISSUES:
+   - Address any issues found in the self-reflection
+   - Re-compile and verify the PDF looks correct
+
+Only after completing this review should you consider the paper finished.

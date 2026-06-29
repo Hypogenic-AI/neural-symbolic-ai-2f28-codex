@@ -1,0 +1,31 @@
+{
+  "best_ood_by_budget": [
+    {
+      "method": "direct_sum",
+      "budget": 64,
+      "split": "ood_high_high",
+      "accuracy_mean": 0.015625,
+      "accuracy_std": NaN,
+      "macro_f1_mean": 0.0016194331983805,
+      "nll_mean": 2.9476356506347656,
+      "confidence_mean": 0.0607174485921859,
+      "train_seconds_mean": 2.554969225078821,
+      "n_runs": 1
+    }
+  ],
+  "paired_tests": [
+    {
+      "budget": 64,
+      "metric": "ood_high_high_accuracy",
+      "method_a": "anchor_posterior",
+      "method_b": "direct_sum",
+      "mean_a": 0.0,
+      "mean_b": 0.015625,
+      "mean_diff": -0.015625,
+      "cohen_dz": NaN,
+      "t_statistic": NaN,
+      "p_value": NaN,
+      "n_seeds": 1
+    }
+  ]
+}

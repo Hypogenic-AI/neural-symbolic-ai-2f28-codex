@@ -1,0 +1,22 @@
+\begin{table}[t]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}llcccc@{}}
+        \toprule
+        \textbf{Pair labels} & \textbf{Method} & \textbf{IID acc. (\%)} & \textbf{OOD acc. (\%)} & \textbf{OOD 95\% CI (\%)} & \textbf{Digit acc. (\%)} \\
+        \midrule
+        1,000 & \directsum & 14.3 & {\bf 1.4} & [1.2, 1.6] & -- \\
+        1,000 & \symbolicsum & 17.3 & 0.0 & [0.0, 0.0] & 29.4 \\
+        1,000 & \anchorsymbolic & {\bf 19.9} & 0.0 & [0.0, 0.0] & {\bf 34.1} \\
+        1,000 & \anchorposterior & 18.9 & 0.0 & [0.0, 0.0] & 33.4 \\
+        \midrule
+        5,000 & \directsum & 31.8 & 0.3 & [0.2, 0.4] & -- \\
+        5,000 & \symbolicsum & {\bf 90.0} & {\bf 82.5} & [81.8, 83.2] & {\bf 93.8} \\
+        5,000 & \anchorsymbolic & 87.7 & 73.2 & [72.4, 74.0] & 91.8 \\
+        5,000 & \anchorposterior & 88.0 & 74.1 & [73.3, 74.8] & 92.0 \\
+        \bottomrule
+    \end{tabular}
+    }
+    \caption{Main AddMNIST results across budgets. Higher is better for all accuracy columns. Best result within each pair-label budget and metric is in {\bf bold}. OOD confidence intervals are bootstrap 95\% intervals over 12,000 predictions per method-budget condition.}
+    \label{tab:main_results}
+\end{table}

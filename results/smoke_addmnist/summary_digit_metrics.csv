@@ -1,0 +1,2 @@
+method,budget,digit_accuracy_mean,digit_accuracy_std,digit_macro_f1_mean,n_runs
+anchor_posterior,64,0.157,,0.0538549938746032,1

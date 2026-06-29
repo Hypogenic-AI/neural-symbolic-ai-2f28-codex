@@ -1,0 +1,6 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We studied whether neural-symbolic learning can generalize to \addmnist sums that never appear as supervised training labels. The answer is yes in the 5,000-label setting, but only after the digit predicates are well grounded. The plain symbolic likelihood model reaches 82.5\% OOD high-plus-high accuracy and 80.6\% accuracy on unseen sums 14--18, while the direct pair CNN remains near zero OOD accuracy.
+
+The main practical lesson is that exact symbolic marginalization is a powerful and simple mechanism for compositional label extrapolation. The anchor-posterior variant is a useful negative result: additional grounding and sharpening terms did not improve over the weak symbolic likelihood in this run. Future work should tune anchor and posterior schedules, extend the protocol to three-digit arithmetic where exact marginalization becomes more expensive, compare against Scallop, DeepProbLog, or A-NeSI implementations, and add noisy or shifted \mnist variants to test whether the compositional gain survives perceptual domain shift.

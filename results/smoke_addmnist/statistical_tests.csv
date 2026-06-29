@@ -1,0 +1,2 @@
+budget,metric,method_a,method_b,mean_a,mean_b,mean_diff,cohen_dz,t_statistic,p_value,n_seeds
+64,ood_high_high_accuracy,anchor_posterior,direct_sum,0.0,0.015625,-0.015625,,,,1

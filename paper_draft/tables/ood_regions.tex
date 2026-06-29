@@ -1,0 +1,17 @@
+\begin{table}[t]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Method} & \textbf{Seen OOD sums 10--13 (\%)} & \textbf{Examples} & \textbf{Unseen sums 14--18 (\%)} & \textbf{Examples} \\
+        \midrule
+        \directsum & 0.9 & 4,432 & 0.0 & 7,568 \\
+        \symbolicsum & {\bf 85.7} & 4,432 & {\bf 80.6} & 7,568 \\
+        \anchorsymbolic & 79.2 & 4,432 & 69.7 & 7,568 \\
+        \anchorposterior & 80.6 & 4,432 & 70.3 & 7,568 \\
+        \bottomrule
+    \end{tabular}
+    }
+    \caption{OOD high-plus-high accuracy at the 5,000-label budget, split by whether the target sum label appeared in training. Sums 14--18 never appear as supervised training labels because training excludes high-plus-high pairs.}
+    \label{tab:ood_regions}
+\end{table}

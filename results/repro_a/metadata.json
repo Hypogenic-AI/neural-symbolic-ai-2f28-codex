@@ -1,0 +1,63 @@
+{
+  "timestamp_utc": "2026-06-29T05:08:43.004113+00:00",
+  "torch": "2.12.1+cu130",
+  "cuda_available": true,
+  "cuda_device_count": 4,
+  "device": "cuda:0",
+  "use_amp": true,
+  "dataset": {
+    "train": {
+      "n": 60000,
+      "label_counts": [
+        5923,
+        6742,
+        5958,
+        6131,
+        5842,
+        5421,
+        5918,
+        6265,
+        5851,
+        5949
+      ]
+    },
+    "test": {
+      "n": 10000,
+      "label_counts": [
+        980,
+        1135,
+        1032,
+        1010,
+        982,
+        892,
+        958,
+        1028,
+        974,
+        1009
+      ]
+    }
+  },
+  "note": "Training excludes high-plus-high digit pairs; OOD split contains only high-plus-high pairs.",
+  "cuda_devices": [
+    {
+      "index": 0,
+      "name": "NVIDIA RTX A6000",
+      "total_memory_gb": 47.4
+    },
+    {
+      "index": 1,
+      "name": "NVIDIA RTX A6000",
+      "total_memory_gb": 47.4
+    },
+    {
+      "index": 2,
+      "name": "NVIDIA RTX A6000",
+      "total_memory_gb": 47.4
+    },
+    {
+      "index": 3,
+      "name": "NVIDIA RTX A6000",
+      "total_memory_gb": 47.4
+    }
+  ]
+}

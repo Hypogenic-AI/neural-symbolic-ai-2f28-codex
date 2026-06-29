@@ -1,0 +1,16 @@
+\begin{table}[t]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lcccccc@{}}
+        \toprule
+        \textbf{Method A} & \textbf{Method B} & \textbf{Mean A (\%)} & \textbf{Mean B (\%)} & \textbf{Diff. (\%)} & \textbf{Cohen's $d_z$} & \textbf{$p$-value} \\
+        \midrule
+        \anchorposterior & \directsum & 74.1 & 0.3 & 73.8 & 9.33 & 0.0038 \\
+        \anchorsymbolic & \directsum & 73.2 & 0.3 & 72.9 & 16.67 & 0.0012 \\
+        \symbolicsum & \directsum & {\bf 82.5} & 0.3 & {\bf 82.2} & {\bf 20.75} & {\bf 0.0008} \\
+        \bottomrule
+    \end{tabular}
+    }
+    \caption{Paired seed-level tests for OOD high-plus-high accuracy at the 5,000-label budget. Tests use three matched seeds and should be read as descriptive because the seed count is small.}
+    \label{tab:stats}
+\end{table}
